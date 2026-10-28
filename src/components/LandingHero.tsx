@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { ProfileData } from '../types/profile';
 import { Header } from './Header';
+import { AdSenseSlot } from './AdSenseSlot';
+import { trackEvent } from '../utils/analytics';
 
 interface LandingHeroProps {
   onProfileLoaded: (profile: ProfileData) => void;
@@ -90,6 +92,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
     setLoading(true);
     setError(null);
     setProgressStep('Reading resume contents...');
+    trackEvent('parse_resume_start', 'conversion', inputMode);
 
     try {
       let payload: any = {};
@@ -234,10 +237,13 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         ],
       };
 
+      trackEvent('parse_resume_success', 'conversion', newProfile.githubUsername || 'anonymous');
       onProfileLoaded(newProfile);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to process resume. Try pasting text or check file format.');
+      const errMsg = err.message || 'Failed to process resume.';
+      trackEvent('parse_resume_error', 'exception', errMsg);
+      setError(errMsg + ' Try pasting text or check file format.');
     } finally {
       setLoading(false);
       setProgressStep('');
@@ -575,8 +581,8 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           </div>
         </section>
 
-        {/* Divider */}
-        <div className="w-full border-t border-slate-800/80 my-12 max-w-4xl" />
+        {/* AdSense Responsive Slot */}
+        <AdSenseSlot className="max-w-4xl my-8" />
 
         {/* Section 3: Frequently Asked Questions (FAQ) */}
         <section className="w-full max-w-4xl text-left space-y-5">

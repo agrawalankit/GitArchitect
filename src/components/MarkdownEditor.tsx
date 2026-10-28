@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Copy, Check, Download, FileCode, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { trackEvent } from '../utils/analytics';
 
 interface MarkdownEditorProps {
   markdown: string;
@@ -16,6 +17,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    trackEvent('copy_markdown_click', 'conversion');
     navigator.clipboard.writeText(markdown);
     setCopied(true);
     confetti({

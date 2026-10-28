@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { UploadCloud, FileText, AlertCircle, Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 import { ProfileData } from '../types/profile';
+import { trackEvent } from '../utils/analytics';
 
 interface ResumeUploaderProps {
   isOpen: boolean;
@@ -77,6 +78,7 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     setLoading(true);
     setError(null);
     setProgressStep('Analyzing resume contents with Gemini AI...');
+    trackEvent('modal_resume_parsed_start', 'conversion', mode);
 
     try {
       let payload: any = {};
@@ -223,11 +225,14 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         ],
       };
 
+      trackEvent('modal_resume_parsed_success', 'conversion', newProfile.githubUsername || 'anonymous');
       onProfileLoaded(newProfile);
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to process resume. Please try pasting raw text instead.');
+      const errMsg = err.message || 'Failed to process resume.';
+      trackEvent('modal_resume_parsed_error', 'exception', errMsg);
+      setError(errMsg + ' Please try pasting raw text instead.');
     } finally {
       setLoading(false);
       setProgressStep('');

@@ -10,6 +10,8 @@ import { ProfileData, SectionId } from './types/profile';
 import { ankitAgrawalSample } from './utils/sampleProfiles';
 import { generateMarkdown } from './utils/markdownGenerator';
 import { Header } from './components/Header';
+import { AdSenseSlot } from './components/AdSenseSlot';
+import { trackEvent, trackPageView } from './utils/analytics';
 import {
   Download,
   BookOpen,
@@ -61,6 +63,8 @@ export default function App() {
     setProfile(newProfile);
     setManualMarkdown(null);
     setView('editor');
+    trackPageView('/editor', 'GitArchitect Profile Editor');
+    trackEvent('profile_editor_opened', 'engagement', newProfile.githubUsername);
     confetti({
       particleCount: 50,
       spread: 60,
@@ -74,6 +78,7 @@ export default function App() {
   };
 
   const handleDownloadMarkdown = () => {
+    trackEvent('download_readme_md', 'conversion', profile.githubUsername || 'anonymous');
     const blob = new Blob([currentMarkdown], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -285,6 +290,11 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* AdSense Slot */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <AdSenseSlot />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-8 bg-[#050811] text-sm text-slate-400 mt-12">

@@ -1,0 +1,6 @@
+{
+  "name": "GitArchitect",
+  "description": "AI-Powered GitHub Profile README Builder. Upload your resume to automatically generate an elite GitHub profile README with drag-and-drop modular layout architect, live markdown preview, and step-by-step publishing instructions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

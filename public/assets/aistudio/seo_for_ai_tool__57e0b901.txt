@@ -1,0 +1,140 @@
+Act as a senior Technical SEO Engineer and Frontend Developer.
+
+I want you to audit and implement complete on-page SEO for this existing CodeExecute tool project.
+
+Website brand: CodeExecute
+Website: https://codeexecute.com/
+
+All tool url : https://codeexecute.com/ai-tools
+
+IMPORTANT:
+Every CodeExecute tool is a separate project. Analyze THIS project's actual functionality, codebase, routes, framework, and deployment setup. Do not assume this tool's purpose or reuse SEO content from other tools.
+
+PRIMARY OBJECTIVE:
+Make this tool technically SEO-friendly, accessible to search engines, shareable on social media, and optimized for relevant search queries without breaking its existing functionality or changing its design.
+
+RULES:
+- Inspect the existing code before making changes.
+- Do not rebuild the application or redesign its interface.
+- Preserve existing features, business logic, integrations, analytics, advertising, branding, and responsive behavior.
+- Do not invent functionality, benefits, or unsupported claims.
+- Avoid unnecessary dependencies and duplicate metadata.
+- Implement changes directly in the existing project wherever possible.
+- If a change must be made in WordPress, DNS, hosting, server configuration, or another external system, explain that limitation instead of pretending the code change is sufficient.
+
+IMPLEMENT THESE SEO REQUIREMENTS:
+
+1. TITLE TAG
+- Create a unique, descriptive title based on the actual purpose and search intent of this tool.
+- Avoid keyword stuffing and generic titles.
+- Ensure the title is generated correctly for this specific page.
+
+2. META DESCRIPTION
+- Write a unique, compelling description that accurately explains what the tool does and why users would use it.
+- Use natural language and relevant search terms.
+- Aim for approximately 140–160 characters as a guideline, not a strict requirement.
+- Avoid duplicate or automatically generated generic descriptions.
+
+3. H1 AND HEADING STRUCTURE
+- Ensure the page has one clear, visible primary H1 describing this tool.
+- Use logical H2 and H3 headings for relevant sections.
+- Preserve existing content and UI where possible.
+- Do not add headings just to insert keywords.
+
+4. CANONICAL URL
+- Identify this project's actual production URL from its configuration, existing links, routing, or deployment settings.
+- Add one correct, absolute, self-referencing canonical URL using HTTPS and the preferred final URL format.
+- Do not guess the production URL or copy a canonical URL from another project.
+- Do not canonicalize this page to the homepage or another tool.
+- Avoid duplicate canonical tags from multiple components, layouts, plugins, or templates.
+- Confirm that the canonical URL is the intended final URL and does not redirect.
+- If the production URL cannot be determined confidently, ask me for it before implementing the canonical URL.
+
+5. ROBOTS AND INDEXABILITY
+- Ensure there is no accidental noindex or nofollow directive on this public tool page.
+- Preserve intentional sitewide robots policies.
+- Check whether the tool content is accessible to search engine crawlers.
+- Do not promise indexing or rankings.
+- Do not modify robots.txt or server rules without identifying a specific issue.
+
+6. OPEN GRAPH AND SOCIAL SHARING
+Implement appropriate metadata for sharing the tool URL:
+- og:title
+- og:description
+- og:type
+- og:url
+- og:image
+- og:site_name
+
+Also implement:
+- twitter:card
+- twitter:title
+- twitter:description
+- twitter:image
+
+Use accurate page-specific titles and descriptions. Use an existing, suitable social-sharing image if available. Do not invent image paths or reference nonexistent files. If an image needs to be created or uploaded, tell me what is required.
+
+7. STRUCTURED DATA
+- Inspect existing structured data before adding anything.
+- Add valid JSON-LD only when it accurately represents the actual page and visible content.
+- Use appropriate WebPage structured data where useful.
+- Reference the CodeExecute website or organization only when the identity and URL are verified.
+- Do not invent reviews, ratings, prices, authors, or features.
+- Avoid duplicate or contradictory structured data.
+- Do not add irrelevant schema types just for SEO.
+
+8. USEFUL ON-PAGE CONTENT
+Assess whether the page needs additional useful content to explain the tool.
+
+Where appropriate, add or improve:
+- A concise introduction
+- What the tool does
+- How to use it
+- Relevant use cases
+- Limitations or privacy information, where applicable
+- Frequently asked questions based on genuine user needs
+- Relevant internal links to related CodeExecute tutorials or resources
+
+Keep the actual tool as the primary focus. Do not add large blocks of generic SEO text, hidden keywords, or fabricated FAQs. Preserve the existing UI and ensure the content is genuinely useful.
+
+9. INTERNAL LINKS AND ACCESSIBILITY
+- Ensure important page links use descriptive anchor text.
+- Make the page discoverable through normal HTML links.
+- Add meaningful alt text to informative images.
+- Ensure interactive elements have accessible labels.
+- Avoid unnecessary or unrelated keyword-rich links.
+
+10. TECHNICAL SEO AND PERFORMANCE
+- Inspect how HTML, metadata, and content are rendered.
+- Ensure important SEO metadata is available to crawlers.
+- If this is a JavaScript SPA, assess whether its current rendering approach provides crawlable HTML.
+- Recommend server-side rendering or static generation only if justified by the existing framework and hosting environment.
+- Avoid unnecessary JavaScript, layout shifts, and performance regressions.
+- Do not break existing analytics, advertising, integrations, or functionality.
+
+11. IMPLEMENTATION AND TESTING
+After implementation:
+- Run available build, lint, and test commands.
+- Check for duplicate title, description, canonical, and robots tags.
+- Verify that the H1 is visible and semantically correct.
+- Verify that the canonical URL and social-sharing URLs are correct.
+- Check that social image references point to real, publicly accessible assets.
+- Check that the existing tool still functions correctly.
+- Report any requirements that cannot be completed within this project's codebase.
+
+FINAL REPORT:
+Provide:
+1. A short summary of the changes.
+2. Files modified.
+3. Final SEO title.
+4. Final meta description.
+5. H1 heading.
+6. Canonical URL.
+7. Open Graph and Twitter metadata.
+8. Structured data added, if any.
+9. Build and test results.
+10. Any manual deployment, WordPress, hosting, or Search Console steps still required.
+
+Do not claim that a check passed unless you actually verified it.
+
+Start by inspecting this project's existing codebase. Identify the tool's purpose and production URL, then implement the appropriate SEO changes in the current architecture.

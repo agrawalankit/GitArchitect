@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #63c6ae;
+  --color-mint: #63c6ae;
+}
+
+@layer base {
+  :root {
+    --brand-mint: #63c6ae;
+  }
+
+  body {
+    font-family: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #e2e8f0;
+    background-color: #070b14;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* PostArchitect style font for headings, brand titles, and display text */
+  h1, h2, h3, .font-display {
+    font-family: 'Space Mono', monospace, -apple-system, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'Space Mono', 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom mint glow and accents with #63c6ae */
+.text-brand {
+  color: #63c6ae;
+}
+
+.bg-brand {
+  background-color: #63c6ae;
+}
+
+.border-brand {
+  border-color: #63c6ae;
+}
+
+.glow-brand {
+  box-shadow: 0 0 30px rgba(99, 198, 174, 0.16);
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(11, 17, 32, 0.8);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #63c6ae;
+}

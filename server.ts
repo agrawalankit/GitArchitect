@@ -12,8 +12,8 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const portArgIdx = process.argv.indexOf('--port');
 const cliPort = portArgIdx !== -1 ? Number(process.argv[portArgIdx + 1]) : null;
-// Dev server in AI Studio must listen on port 3000
-const port = cliPort || 3000;
+// Dev server listens on CLI port, PORT env, or 3000 by default
+const port = cliPort || Number(process.env.PORT) || 3000;
 
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));

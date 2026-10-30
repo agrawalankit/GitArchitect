@@ -186,7 +186,19 @@ function extractProfileFromResumeText(text: string): any {
     'PyTorch', 'TensorFlow', 'Gemini', 'OpenAI', 'LangChain', 'LLMs'
   ];
 
-  const foundTech = techCatalog.filter((tech) => new RegExp(`\\b${tech.replace('.', '\\.')}\\b`, 'i').test(text));
+  function matchesTechKeyword(sourceText: string, keyword: string): boolean {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prefix = /^\w/.test(keyword) ? '\\b' : '(?:^|\\s)';
+    const suffix = /\w$/.test(keyword) ? '\\b' : '(?=$|[\\s,;.:!?/()\\[\\]])';
+    try {
+      const rx = new RegExp(`${prefix}${escaped}${suffix}`, 'i');
+      return rx.test(sourceText);
+    } catch {
+      return sourceText.toLowerCase().includes(keyword.toLowerCase());
+    }
+  }
+
+  const foundTech = techCatalog.filter((tech) => matchesTechKeyword(text, tech));
   const languages = foundTech.filter((t) => ['TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift', 'Kotlin'].includes(t));
   const frontend = foundTech.filter((t) => ['React', 'Next.js', 'Vue.js', 'Angular', 'Tailwind CSS', 'Redux', 'Svelte', 'HTML5', 'CSS3'].includes(t));
   const backend = foundTech.filter((t) => ['Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs'].includes(t));

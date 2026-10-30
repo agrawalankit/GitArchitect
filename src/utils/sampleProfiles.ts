@@ -10,7 +10,7 @@ export const ankitAgrawalSample: ProfileData = {
   company: 'WPS Technologies PVT LTD',
   email: 'ankitagrawal.an@gmail.com',
   website: 'https://codeexecute.com',
-  avatarUrl: '/assets/aistudio/image_6c13ad45.png', // The user's provided profile photo!
+  avatarUrl: './assets/aistudio/image_6c13ad45.png', // The user's provided profile photo!
   quote: "Your product doesn't always need more code. Sometimes it needs the right engineering decision.",
   aboutMe: "I help founders, CTOs and product teams solve engineering bottlenecks that slow down product growth. Passionate about resilient systems, database scaling, and pragmatically integrating AI into production software.",
   whatIDo: [

@@ -32,7 +32,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
   const badgeStyle = profile.badgeStyle || 'for-the-badge';
 
   // Fallback avatar or custom user photo
-  const avatarSrc = profile.avatarUrl || '/assets/aistudio/image_6c13ad45.png';
+  const avatarSrc = profile.avatarUrl || './assets/aistudio/image_6c13ad45.png';
 
   // Background and border tokens based on GitHub dark / light mode
   const bgMain = isDark ? 'bg-[#0d1117]' : 'bg-[#ffffff]';

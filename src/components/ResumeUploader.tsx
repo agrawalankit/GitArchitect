@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { UploadCloud, FileText, AlertCircle, Loader2, Sparkles, ArrowRight, X } from 'lucide-react';
 import { ProfileData } from '../types/profile';
 import { trackEvent } from '../utils/analytics';
+import { parseResumeClientSide } from '../utils/clientFallbackParser';
 
 interface ResumeUploaderProps {
   isOpen: boolean;
@@ -83,6 +84,7 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     try {
       let payload: any = {};
 
+      let textContent = rawText;
       if (mode === 'upload' && file) {
         setProgressStep(`Reading ${file.name}...`);
         const lowerName = file.name.toLowerCase();
@@ -96,7 +98,7 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           lowerName.endsWith('.rtf');
 
         if (isText) {
-          const textContent = await file.text();
+          textContent = await file.text();
           payload = { resumeText: textContent };
         } else {
           const base64 = await fileToBase64(file);
@@ -111,37 +113,29 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
 
       setProgressStep('Extracting tech stack, architecture experience & leadership...');
 
-      const response = await fetch('/api/parse-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
       let result: any = null;
       try {
-        result = JSON.parse(responseText);
-      } catch {
-        console.warn('Server returned non-JSON body:', responseText.slice(0, 200));
-        throw new Error('Server returned an unexpected format. Please try again or paste resume text.');
-      }
+        const response = await fetch('/api/parse-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok || !result || result.success === false) {
-        let msg = result?.error || 'Failed to process resume.';
-        if (typeof msg === 'string' && msg.trim().startsWith('{')) {
-          try {
-            const inner = JSON.parse(msg);
-            msg = inner?.error?.message || inner?.message || msg;
-          } catch {}
+        if (response.ok) {
+          const responseText = await response.text();
+          result = JSON.parse(responseText);
         }
-        throw new Error(msg);
+      } catch (err) {
+        console.warn('API /api/parse-resume unavailable or returned non-JSON. Falling back to local client parser.', err);
       }
 
-      setProgressStep('Structuring GitHub profile sections & badges...');
-      const data = result.data || {};
+      // If backend API returned valid data, use it; otherwise use intelligent client parser
+      if (result && result.success && result.data) {
+        setProgressStep('Structuring GitHub profile sections & badges...');
+        const data = result.data || {};
 
-      const newProfile: ProfileData = {
-        name: data.name || 'Developer',
+        const newProfile: ProfileData = {
+          name: data.name || 'Developer',
         githubUsername: data.githubUsername || 'username',
         pronouns: data.pronouns || 'they/them',
         title: data.title || 'Full-Stack Software Engineer',
@@ -225,9 +219,15 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         ],
       };
 
-      trackEvent('modal_resume_parsed_success', 'conversion', newProfile.githubUsername || 'anonymous');
-      onProfileLoaded(newProfile);
-      onClose();
+        trackEvent('modal_resume_parsed_success', 'conversion', newProfile.githubUsername || 'anonymous');
+        onProfileLoaded(newProfile);
+        onClose();
+      } else {
+        const fallback = parseResumeClientSide(textContent || file?.name || '', file?.name);
+        trackEvent('modal_resume_parsed_success', 'conversion', (fallback.githubUsername || 'anonymous') + '_fallback');
+        onProfileLoaded(fallback);
+        onClose();
+      }
     } catch (err: any) {
       console.error(err);
       const errMsg = err.message || 'Failed to process resume.';

@@ -17,6 +17,7 @@ import { ProfileData } from '../types/profile';
 import { Header } from './Header';
 import { AdSenseSlot } from './AdSenseSlot';
 import { trackEvent } from '../utils/analytics';
+import { parseResumeClientSide } from '../utils/clientFallbackParser';
 
 interface LandingHeroProps {
   onProfileLoaded: (profile: ProfileData) => void;
@@ -96,6 +97,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
 
     try {
       let payload: any = {};
+      let textContent = rawText;
       if (inputMode === 'upload' && file) {
         const lowerName = file.name.toLowerCase();
         const isText =
@@ -107,7 +109,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
           lowerName.endsWith('.rtf');
 
         if (isText) {
-          const textContent = await file.text();
+          textContent = await file.text();
           payload = { resumeText: textContent };
         } else {
           const isPdf = file.type === 'application/pdf' || lowerName.endsWith('.pdf');
@@ -121,39 +123,30 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         payload = { resumeText: rawText };
       }
 
-      setProgressStep('Gemini AI is analyzing skills, impact metrics & architecture pillars...');
+      setProgressStep('Analyzing skills, impact metrics & architecture pillars...');
 
-      const response = await fetch('/api/parse-resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const responseText = await response.text();
       let result: any = null;
       try {
-        result = JSON.parse(responseText);
-      } catch {
-        console.warn('Server returned non-JSON body:', responseText.slice(0, 200));
-        throw new Error('Server returned an unexpected format. Please try again or paste resume text.');
-      }
+        const response = await fetch('/api/parse-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok || !result || result.success === false) {
-        let msg = result?.error || 'Failed to process resume.';
-        if (typeof msg === 'string' && msg.trim().startsWith('{')) {
-          try {
-            const inner = JSON.parse(msg);
-            msg = inner?.error?.message || inner?.message || msg;
-          } catch {}
+        if (response.ok) {
+          const responseText = await response.text();
+          result = JSON.parse(responseText);
         }
-        throw new Error(msg);
+      } catch (err) {
+        console.warn('Backend API unavailable. Using resilient local client parser.', err);
       }
 
-      setProgressStep('Structuring Markdown layout & Shields.io badges...');
-      const data = result.data || {};
+      if (result && result.success && result.data) {
+        setProgressStep('Structuring Markdown layout & Shields.io badges...');
+        const data = result.data || {};
 
-      const newProfile: ProfileData = {
-        name: data.name || 'Developer',
+        const newProfile: ProfileData = {
+          name: data.name || 'Developer',
         githubUsername: data.githubUsername || 'username',
         pronouns: data.pronouns || 'they/them',
         title: data.title || 'Full-Stack Software Engineer',
@@ -237,8 +230,13 @@ export const LandingHero: React.FC<LandingHeroProps> = ({
         ],
       };
 
-      trackEvent('parse_resume_success', 'conversion', newProfile.githubUsername || 'anonymous');
-      onProfileLoaded(newProfile);
+        trackEvent('parse_resume_success', 'conversion', newProfile.githubUsername || 'anonymous');
+        onProfileLoaded(newProfile);
+      } else {
+        const fallback = parseResumeClientSide(textContent || file?.name || '', file?.name);
+        trackEvent('parse_resume_success', 'conversion', (fallback.githubUsername || 'anonymous') + '_fallback');
+        onProfileLoaded(fallback);
+      }
     } catch (err: any) {
       console.error(err);
       const errMsg = err.message || 'Failed to process resume.';

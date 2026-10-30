@@ -31,8 +31,10 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
   const username = profile.githubUsername || 'username';
   const badgeStyle = profile.badgeStyle || 'for-the-badge';
 
-  // Fallback avatar or custom user photo
-  const avatarSrc = profile.avatarUrl || './assets/aistudio/image_6c13ad45.png';
+  // Dynamic avatar based on candidate's name or provided photo
+  const avatarSrc =
+    profile.avatarUrl ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.name || 'Dev')}&background=0D1117&color=63C6AE&size=256&bold=true`;
 
   // Background and border tokens based on GitHub dark / light mode
   const bgMain = isDark ? 'bg-[#0d1117]' : 'bg-[#ffffff]';
@@ -181,10 +183,6 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                     <span>{profile.location}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2">
-                  <Clock className={`w-4 h-4 ${textMuted} shrink-0`} />
-                  <span>19:30 (UTC)</span>
-                </div>
                 {profile.email && (
                   <div className="flex items-center gap-2 truncate">
                     <Mail className={`w-4 h-4 ${textMuted} shrink-0`} />
@@ -254,12 +252,15 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'whatIDo':
+                        if (!profile.whatIDo || profile.whatIDo.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>What I do</h3>
-                            <p className={`text-xs ${textMuted}`}>
-                              I help founders, CTOs and product teams solve the engineering problems that slow down product growth:
-                            </p>
+                            {profile.aboutMe && (
+                              <p className={`text-xs ${textMuted} leading-relaxed`}>
+                                {profile.aboutMe}
+                              </p>
+                            )}
                             <ul className="space-y-2 text-xs">
                               {profile.whatIDo.map((item) => (
                                 <li key={item.id} className="flex items-start gap-2">
@@ -273,6 +274,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'byTheNumbers':
+                        if (!profile.byTheNumbers || profile.byTheNumbers.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>By the numbers</h3>
@@ -291,15 +293,13 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'approach':
+                        if (!profile.approach || profile.approach.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>My approach</h3>
                             <div className={`p-3 rounded-lg bg-slate-900/30 border ${borderCol} text-xs font-semibold ${textHeading}`}>
                               {profile.approach.join(' → ')}
                             </div>
-                            <p className={`text-xs ${textMuted} leading-relaxed`}>
-                              I don't believe every problem needs a rewrite, more infrastructure, or the newest framework. Sometimes the answer is better architecture. Sometimes it's a better query. And sometimes it's writing less code.
-                            </p>
                             <div className={`border-b ${dividerCol} pt-2`} />
                           </div>
                         );
@@ -307,15 +307,16 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                       case 'techStack': {
                         const allTechs = Array.from(
                           new Set([
-                            ...(profile.techStack.languages || []),
-                            ...(profile.techStack.frontend || []),
-                            ...(profile.techStack.backend || []),
-                            ...(profile.techStack.database || []),
-                            ...(profile.techStack.devops || []),
-                            ...(profile.techStack.ai_ml || []),
-                            ...(profile.techStack.tools || []),
+                            ...(profile.techStack?.languages || []),
+                            ...(profile.techStack?.frontend || []),
+                            ...(profile.techStack?.backend || []),
+                            ...(profile.techStack?.database || []),
+                            ...(profile.techStack?.devops || []),
+                            ...(profile.techStack?.ai_ml || []),
+                            ...(profile.techStack?.tools || []),
                           ])
                         );
+                        if (allTechs.length === 0) return null;
 
                         return (
                           <div key={sec.id} className="space-y-3">
@@ -396,6 +397,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                       }
 
                       case 'projects':
+                        if (!profile.featuredProjects || profile.featuredProjects.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>Featured Projects</h3>
@@ -458,6 +460,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'focus':
+                        if (!profile.currentFocus || profile.currentFocus.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>Current focus</h3>
@@ -474,6 +477,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'content':
+                        if (!profile.contentOrArticles || profile.contentOrArticles.length === 0) return null;
                         return (
                           <div key={sec.id} className="space-y-3">
                             <h3 className={`text-base font-bold ${textHeading}`}>✍️ I write about tech</h3>
@@ -502,6 +506,7 @@ export const GitHubPreview: React.FC<GitHubPreviewProps> = ({ profile }) => {
                         );
 
                       case 'contact': {
+                        if (!profile.socials || profile.socials.length === 0) return null;
                         const socialBadges: Array<{ label: string; url: string; color: string; logo: string }> = [];
                         const confMap: Record<string, { color: string; logo: string }> = {
                           linkedin: { color: '0077B5', logo: 'linkedin' },

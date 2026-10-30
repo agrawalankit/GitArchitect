@@ -19,26 +19,62 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-const STORAGE_KEY = 'gitarchitect_profile_data_v3';
+const blankProfile: ProfileData = {
+  name: '',
+  githubUsername: '',
+  pronouns: '',
+  title: '',
+  location: '',
+  company: '',
+  email: '',
+  website: '',
+  quote: '',
+  aboutMe: '',
+  whatIDo: [],
+  byTheNumbers: [],
+  approach: [],
+  techStack: {
+    languages: [],
+    frontend: [],
+    backend: [],
+    database: [],
+    devops: [],
+    ai_ml: [],
+    tools: [],
+  },
+  badgeStyle: 'for-the-badge',
+  statsWidgets: {
+    showStats: true,
+    showLanguages: true,
+    showStreak: true,
+    showSnake: false,
+    showTrophies: false,
+    theme: 'tokyonight',
+    hideBorder: true,
+  },
+  currentFocus: [],
+  featuredProjects: [],
+  contentOrArticles: [],
+  socials: [],
+  customMarkdown: '',
+  sections: [
+    { id: 'header', label: 'Header & Bio', enabled: true, iconName: 'User' },
+    { id: 'whatIDo', label: 'What I Do', enabled: false, iconName: 'Zap' },
+    { id: 'byTheNumbers', label: 'By The Numbers', enabled: false, iconName: 'Hash' },
+    { id: 'approach', label: 'My Approach', enabled: false, iconName: 'Compass' },
+    { id: 'techStack', label: 'Tech Stack', enabled: true, iconName: 'Cpu' },
+    { id: 'stats', label: 'GitHub Stats Cards', enabled: false, iconName: 'BarChart2' },
+    { id: 'projects', label: 'Featured Projects', enabled: false, iconName: 'FolderGit2' },
+    { id: 'focus', label: 'Current Focus', enabled: false, iconName: 'Target' },
+    { id: 'content', label: 'Writing & Community', enabled: false, iconName: 'BookOpen' },
+    { id: 'contact', label: "Let's Talk & Socials", enabled: false, iconName: 'MessageSquare' },
+    { id: 'custom', label: 'Custom Callout', enabled: false, iconName: 'FileText' },
+  ],
+};
 
 export default function App() {
-  const [profile, setProfile] = useState<ProfileData>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved && saved !== 'undefined' && saved.trim().startsWith('{')) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object' && parsed.name) {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load profile from storage, resetting', e);
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-      } catch {}
-    }
-    return ankitAgrawalSample;
-  });
+  // Always start with fresh state - zero memory retention of uploaded documents
+  const [profile, setProfile] = useState<ProfileData>(blankProfile);
 
   const [view, setView] = useState<'landing' | 'editor'>('landing');
   const [activeTab, setActiveTab] = useState<'architect' | 'preview' | 'markdown' | 'guide'>('architect');
@@ -47,14 +83,14 @@ export default function App() {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [manualMarkdown, setManualMarkdown] = useState<string | null>(null);
 
-  // Sync profile to localStorage
+  // Clear any past cached resume from localStorage to guarantee zero retention
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
-    } catch (e) {
-      console.warn('Failed to save to storage', e);
-    }
-  }, [profile]);
+      localStorage.removeItem('gitarchitect_profile_data_v3');
+      localStorage.removeItem('gitarchitect_profile_data_v2');
+      localStorage.removeItem('gitarchitect_profile_data_v1');
+    } catch {}
+  }, []);
 
   // Current generated markdown
   const currentMarkdown = manualMarkdown !== null ? manualMarkdown : generateMarkdown(profile);
@@ -112,7 +148,7 @@ export default function App() {
   };
 
   const handleResetLayout = () => {
-    handleUpdateProfile(ankitAgrawalSample);
+    handleUpdateProfile(blankProfile);
   };
 
   // 1. Initial Landing Page

@@ -1,19 +1,24 @@
 /**
- * Resilient client-side resume parser and fallback extractor.
- * Ensures GitArchitect functions 100% even on static hosting (e.g. WordPress, Apache, GitHub Pages)
- * or when the backend /api/parse-resume endpoint is not reachable.
+ * Resilient, zero-memory, stateless client-side resume parser.
+ * Reads ONLY data explicitly present in the provided resume.
+ * If any field is not found in the resume, it is left completely blank ("" or []).
+ * Never copies from previous resumes and never retains data in memory.
  */
 
-import { ProfileData, SocialLink } from '../types/profile';
+import { ProfileData, SocialLink, SectionMeta } from '../types/profile';
 
 export function parseResumeClientSide(text: string, _fileName?: string): ProfileData {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
   
-  // Extract Name (first clean non-header line)
-  let candidateName = 'Developer';
-  for (const line of lines.slice(0, 5)) {
+  // Extract Name (first clean non-header line under 40 chars)
+  let candidateName = '';
+  for (const line of lines.slice(0, 6)) {
     const clean = line.replace(/[^a-zA-Z\s.-]/g, '').trim();
-    if (clean.length >= 3 && clean.length <= 40 && !/resume|curriculum|vitae|page|contact|email/i.test(clean)) {
+    if (
+      clean.length >= 2 &&
+      clean.length <= 40 &&
+      !/resume|curriculum|vitae|page|contact|email|phone|http|github|linkedin|portfolio/i.test(clean)
+    ) {
       candidateName = clean;
       break;
     }
@@ -25,20 +30,28 @@ export function parseResumeClientSide(text: string, _fileName?: string): Profile
 
   // Extract GitHub username or handle
   const githubMatch = text.match(/github\.com\/([a-zA-Z0-9_-]+)/i);
-  const githubUsername = githubMatch ? githubMatch[1] : (candidateName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'developer');
+  const githubUsername = githubMatch
+    ? githubMatch[1]
+    : candidateName
+    ? candidateName.toLowerCase().replace(/[^a-z0-9]/g, '')
+    : '';
 
   // Extract LinkedIn
   const linkedinMatch = text.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]+)/i);
   const linkedinUrl = linkedinMatch ? `https://linkedin.com/in/${linkedinMatch[1]}` : '';
 
-  // Extract tech stack keywords
+  // Extract portfolio or personal website (excluding social networks)
+  const webMatch = text.match(/https?:\/\/(?!github\.com|linkedin\.com|twitter\.com|x\.com|facebook\.com)([\w.-]+\.[a-z]{2,})(\/[^\s]*)?/i);
+  const website = webMatch ? webMatch[0] : '';
+
+  // Extract tech stack keywords strictly mentioned in THIS resume text
   const techCatalog = [
     'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift', 'Kotlin',
     'React', 'Next.js', 'Vue.js', 'Angular', 'Tailwind CSS', 'Redux', 'Svelte', 'HTML5', 'CSS3',
     'Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs', 'Laravel', 'WordPress',
     'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Supabase', 'Firebase',
     'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'CI/CD', 'GitHub Actions', 'Terraform', 'Linux',
-    'PyTorch', 'TensorFlow', 'Gemini', 'OpenAI', 'LangChain', 'LLMs', 'Git', 'Vite', 'Figma'
+    'PyTorch', 'TensorFlow', 'Gemini', 'OpenAI', 'LangChain', 'LLMs', 'Git', 'Vite', 'Figma', 'Postman'
   ];
 
   function matchesTechKeyword(sourceText: string, keyword: string): boolean {
@@ -60,122 +73,108 @@ export function parseResumeClientSide(text: string, _fileName?: string): Profile
   const database = foundTech.filter((t) => ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Supabase', 'Firebase'].includes(t));
   const devops = foundTech.filter((t) => ['Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'CI/CD', 'GitHub Actions', 'Terraform', 'Linux'].includes(t));
   const ai_ml = foundTech.filter((t) => ['Gemini', 'PyTorch', 'TensorFlow', 'OpenAI', 'LangChain', 'LLMs'].includes(t));
-  const tools = foundTech.filter((t) => ['Git', 'Vite', 'Figma'].includes(t));
+  const tools = foundTech.filter((t) => ['Git', 'Vite', 'Figma', 'Postman'].includes(t));
 
-  // Determine Title based on found tech
-  let title = 'Senior Software Engineer & Architect';
-  if (languages.includes('PHP') || backend.includes('Laravel') || backend.includes('WordPress')) {
-    title = 'Full-Stack Software Engineer & Solutions Architect';
-  } else if (ai_ml.length > 0) {
-    title = 'AI Software Engineer & System Architect';
-  } else if (frontend.length > backend.length) {
-    title = 'Frontend Engineer & UI/UX Architect';
+  // Determine Title from first job or headline line in resume
+  let title = '';
+  for (const line of lines.slice(1, 5)) {
+    if (/engineer|developer|architect|lead|manager|consultant|specialist|designer|scientist|programmer/i.test(line)) {
+      title = line.replace(/[^a-zA-Z0-9\s&|·–-]/g, '').slice(0, 70).trim();
+      break;
+    }
   }
 
-  // Detect years of experience or numbers
-  const expMatch = text.match(/(\d+)\+?\s*(?:years|yrs)\s+(?:of\s+)?experience/i);
-  const yearsExp = expMatch ? `${expMatch[1]}+ years` : '8+ years';
+  // Extract Summary or Objective if explicitly present
+  let aboutMe = '';
+  const summaryHeaderIdx = lines.findIndex((l) => /^(summary|about|profile|professional summary|objective|about me)/i.test(l));
+  if (summaryHeaderIdx !== -1 && lines[summaryHeaderIdx + 1]) {
+    aboutMe = lines.slice(summaryHeaderIdx + 1, summaryHeaderIdx + 4).join(' ');
+  }
 
-  const socials: SocialLink[] = [
-    ...(linkedinUrl ? [{ id: '1', platform: 'linkedin' as const, url: linkedinUrl, label: 'LinkedIn' }] : []),
-    { id: '2', platform: 'github' as const, url: `https://github.com/${githubUsername}`, label: 'GitHub' },
-    { id: '3', platform: 'website' as const, url: 'https://codeexecute.com', label: 'CodeExecute' },
+  // Extract real bullet points from experience lines (starts with bullet / dash / asterisk)
+  const bulletLines = lines.filter((l) => /^[-•*·]\s+/.test(l));
+  const whatIDo = bulletLines.slice(0, 5).map((b, idx) => ({
+    id: String(idx + 1),
+    emoji: idx === 0 ? '⚡' : idx === 1 ? '🗄️' : idx === 2 ? '🚀' : idx === 3 ? '🛠️' : '👥',
+    text: b.replace(/^[-•*·]\s+/, '').trim(),
+  }));
+
+  // Extract metrics only if explicitly present in resume
+  const metricLines = lines.filter((l) => /\b\d+(\.\d+)?%|\b\d+\+\s*(?:years|yrs)|\$\d+|\b\d+[kKmM]\b/.test(l));
+  const byTheNumbers = metricLines.slice(0, 4).map((m, idx) => {
+    const numMatch = m.match(/\b\d+(\.\d+)?%|\b\d+\+\s*(?:years|yrs)|\$\d+|\b\d+[kKmM]\b/);
+    const stat = numMatch ? numMatch[0] : '';
+    const label = m.replace(stat, '').replace(/^[-•*·:, ]+/, '').trim().slice(0, 60);
+    return { id: String(idx + 1), stat, label: label || 'impact' };
+  }).filter((x) => Boolean(x.stat));
+
+  // Build socials strictly from found links
+  const socials: SocialLink[] = [];
+  if (linkedinUrl) {
+    socials.push({ id: '1', platform: 'linkedin', url: linkedinUrl, label: 'LinkedIn' });
+  }
+  if (githubUsername) {
+    socials.push({ id: '2', platform: 'github', url: `https://github.com/${githubUsername}`, label: 'GitHub' });
+  }
+  if (website) {
+    socials.push({ id: '3', platform: 'website', url: website, label: 'Portfolio' });
+  }
+
+  // Configure sections: enable ONLY sections that have real data
+  const sections: SectionMeta[] = [
+    { id: 'header', label: 'Header & Bio', enabled: true, iconName: 'User' },
+    { id: 'whatIDo', label: 'What I Do', enabled: whatIDo.length > 0, iconName: 'Zap' },
+    { id: 'byTheNumbers', label: 'By The Numbers', enabled: byTheNumbers.length > 0, iconName: 'Hash' },
+    { id: 'approach', label: 'My Approach', enabled: false, iconName: 'Compass' },
+    { id: 'techStack', label: 'Tech Stack', enabled: foundTech.length > 0, iconName: 'Cpu' },
+    { id: 'stats', label: 'GitHub Stats Cards', enabled: Boolean(githubUsername), iconName: 'BarChart2' },
+    { id: 'projects', label: 'Featured Projects', enabled: false, iconName: 'FolderGit2' },
+    { id: 'focus', label: 'Current Focus', enabled: false, iconName: 'Target' },
+    { id: 'content', label: 'Writing & Community', enabled: false, iconName: 'BookOpen' },
+    { id: 'contact', label: "Let's Talk & Socials", enabled: socials.length > 0, iconName: 'MessageSquare' },
+    { id: 'custom', label: 'Custom Callout', enabled: false, iconName: 'FileText' },
   ];
 
   return {
-    name: candidateName,
-    githubUsername: githubUsername,
-    pronouns: 'he/him',
-    title: title,
+    name: candidateName || 'Developer',
+    githubUsername: githubUsername || '',
+    pronouns: '',
+    title: title || '',
     location: '',
     company: '',
     email: email,
-    website: 'https://codeexecute.com',
-    avatarUrl: './assets/aistudio/image_6c13ad45.png',
+    website: website,
+    // Do not set avatarUrl with any previous person's image
+    avatarUrl: undefined,
     socials: socials,
-    quote: "Your product doesn't always need more code. Sometimes it needs the right engineering decision.",
-    aboutMe: `I build resilient, high-performance software systems and scalable cloud architectures. Passionate about solving bottleneck constraints, modernizing legacy systems, and crafting developer tooling.`,
-    whatIDo: [
-      { id: '1', emoji: '⚡', text: 'High-throughput APIs, microservices and database bottleneck diagnosis' },
-      { id: '2', emoji: '🗄️', text: 'Systems scaling to millions of transactions and distributed records' },
-      { id: '3', emoji: '🧱', text: 'Technical debt modernization and scalable architectural roadmaps' },
-      { id: '4', emoji: '🚀', text: 'End-to-end MVP architecture and technical delivery' },
-      { id: '5', emoji: '👥', text: 'Engineering delivery, mentoring squads, and code quality standards' },
-    ],
-    byTheNumbers: [
-      { id: '1', stat: yearsExp, label: 'building software products and solving engineering constraints' },
-      { id: '2', stat: '100+', label: 'web and enterprise software architectures delivered' },
-      { id: '3', stat: '15+', label: 'engineers mentored across cross-functional squads' },
-      { id: '4', stat: '99.9%', label: 'system availability and operational uptime' },
-    ],
-    approach: [
-      'Understand the business problem',
-      'Diagnose the technical constraint',
-      'Choose the right solution',
-      'Execute cleanly with tests',
-      'Optimize & observe in production'
-    ],
+    quote: '',
+    aboutMe: aboutMe,
+    whatIDo: whatIDo,
+    byTheNumbers: byTheNumbers,
+    approach: [],
     techStack: {
-      languages: languages.length > 0 ? languages : ['TypeScript', 'JavaScript', 'PHP', 'Python'],
-      frontend: frontend.length > 0 ? frontend : ['React', 'Next.js', 'Tailwind CSS', 'Vue.js'],
-      backend: backend.length > 0 ? backend : ['Node.js', 'Express', 'Laravel', 'REST APIs'],
-      database: database.length > 0 ? database : ['PostgreSQL', 'MySQL', 'Redis'],
-      devops: devops.length > 0 ? devops : ['Docker', 'AWS', 'GitHub Actions', 'Linux'],
-      ai_ml: ai_ml.length > 0 ? ai_ml : ['Gemini', 'OpenAI'],
-      tools: tools.length > 0 ? tools : ['Git', 'Vite', 'Figma']
+      languages,
+      frontend,
+      backend,
+      database,
+      devops,
+      ai_ml,
+      tools,
     },
     badgeStyle: 'for-the-badge',
     statsWidgets: {
-      showStats: true,
-      showLanguages: true,
-      showStreak: true,
+      showStats: Boolean(githubUsername),
+      showLanguages: Boolean(githubUsername),
+      showStreak: Boolean(githubUsername),
       showSnake: false,
       showTrophies: false,
       theme: 'tokyonight',
       hideBorder: true,
     },
-    currentFocus: [
-      'AI-powered developer productivity tools & SaaS architectures',
-      'Distributed systems scalability and query optimization',
-      'High-converting developer portfolios & open-source engineering'
-    ],
-    featuredProjects: [
-      {
-        id: '1',
-        name: 'Enterprise Architecture Modernization',
-        description: 'Engineered high-concurrency microservices reducing latency by 45% with automated CI/CD.',
-        tech: ['TypeScript', 'React', 'Node.js', 'Docker'],
-        link: `https://github.com/${githubUsername}`
-      },
-      {
-        id: '2',
-        name: 'Developer Tooling & Cloud Platforms',
-        description: 'Built interactive tools and performance diagnosis systems serving thousands of engineers.',
-        tech: ['React', 'Tailwind CSS', 'Vite', 'PostgreSQL'],
-        link: `https://github.com/${githubUsername}`
-      }
-    ],
-    contentOrArticles: [
-      {
-        id: '1',
-        title: 'Building Resilient Web Architectures',
-        description: 'Practical guides and engineering patterns for high-throughput applications.',
-        link: 'https://codeexecute.com',
-      }
-    ],
+    currentFocus: [],
+    featuredProjects: [],
+    contentOrArticles: [],
     customMarkdown: '',
-    sections: [
-      { id: 'header', label: 'Header & Bio', enabled: true, iconName: 'User' },
-      { id: 'whatIDo', label: 'What I Do', enabled: true, iconName: 'Zap' },
-      { id: 'byTheNumbers', label: 'By The Numbers', enabled: true, iconName: 'Hash' },
-      { id: 'approach', label: 'My Approach', enabled: true, iconName: 'Compass' },
-      { id: 'techStack', label: 'Tech Stack', enabled: true, iconName: 'Cpu' },
-      { id: 'stats', label: 'GitHub Stats Cards', enabled: true, iconName: 'BarChart2' },
-      { id: 'projects', label: 'Featured Projects', enabled: true, iconName: 'FolderGit2' },
-      { id: 'focus', label: 'Current Focus', enabled: true, iconName: 'Target' },
-      { id: 'content', label: 'Writing & Community', enabled: true, iconName: 'BookOpen' },
-      { id: 'contact', label: "Let's Talk & Socials", enabled: true, iconName: 'MessageSquare' },
-      { id: 'custom', label: 'Custom Callout', enabled: false, iconName: 'FileText' },
-    ],
+    sections: sections,
   };
 }

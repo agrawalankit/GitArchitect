@@ -44,78 +44,53 @@ async function generateWithRetry(fn: () => Promise<any>, retries = 2, delayMs = 
   throw lastError;
 }
 
-const systemPrompt = `You are an elite developer advocate and GitHub profile README architect.
-Your job is to read the provided resume and transform it into a high-converting, aesthetic GitHub profile README configuration.
-Extract real accomplishments, tech stack, leadership experience, and metrics.
-Never invent false experience; amplify true skills and structure them cleanly.
+const systemPrompt = `You are a precise developer advocate and GitHub profile README architect.
+Your job is to read ONLY the provided resume and transform it into a clean, accurate GitHub profile README configuration.
+
+CRITICAL ACCURACY & STATELESS RULES:
+1. Read ONLY the specific resume document or text provided in this single request.
+2. Extract ONLY information explicitly present in THIS resume.
+3. If ANY field or section is not found or not mentioned in this resume, leave it completely blank:
+   - Return "" (empty string) for text fields (e.g. quote, company, location, website, email, pronouns, title, aboutMe).
+   - Return [] (empty array) for list/array fields (e.g. socials, whatIDo, byTheNumbers, approach, currentFocus, featuredProjects, contentOrArticles).
+   - For techStack, include ONLY languages, frameworks, databases, and devops tools that are explicitly named in this resume. If a category has no matching skills in the resume, return [].
+4. NEVER copy data from previous resumes, NEVER invent quotes, NEVER add fake statistics, NEVER create fake projects.
+5. Every request must be processed completely fresh and isolated with zero retention.
 
 Output MUST be a valid JSON object strictly matching this schema:
 {
-  "name": "Full Name",
-  "githubUsername": "suggested or found username (e.g. janesmith)",
-  "pronouns": "e.g. he/him, she/her, they/them",
-  "title": "Professional Headline (e.g. Founder & CTO @ WPS Technologies · Software Architect)",
-  "location": "City, Country",
-  "company": "Current or Latest Company / Organization",
-  "email": "Email address if found, or empty string",
-  "website": "Portfolio URL or blog if found, or empty string",
+  "name": "Full Name from resume or empty string",
+  "githubUsername": "GitHub handle if mentioned in resume, otherwise username from candidate name or empty string",
+  "pronouns": "pronouns if stated in resume, otherwise empty string",
+  "title": "Professional title or headline directly from resume, or empty string",
+  "location": "City, Country if mentioned in resume, otherwise empty string",
+  "company": "Current or latest company from resume, or empty string",
+  "email": "Email address from resume, or empty string",
+  "website": "Portfolio URL or blog from resume, or empty string",
   "socials": [
-    { "platform": "linkedin", "url": "https://linkedin.com/in/username", "label": "LinkedIn" },
-    { "platform": "x", "url": "https://x.com/username", "label": "X (Twitter)" },
-    { "platform": "website", "url": "https://mysite.dev", "label": "Portfolio" }
+    { "platform": "linkedin", "url": "https://linkedin.com/in/...", "label": "LinkedIn" }
   ],
-  "quote": "A memorable, inspiring 1-sentence engineering philosophy or mission statement. E.g. 'Your product doesn't always need more code. Sometimes it needs the right engineering decision.'",
-  "aboutMe": "2-3 punchy, conversational sentences summarizing what they build, their engineering strengths, and their passion.",
+  "quote": "Direct quote from resume if present, otherwise empty string",
+  "aboutMe": "Summary or objective statement directly from resume, or empty string",
   "whatIDo": [
-    { "emoji": "⚡", "text": "High-throughput APIs, microservices and database bottleneck diagnosis" },
-    { "emoji": "🗄️", "text": "Systems scaling to millions of transactions and distributed records" },
-    { "emoji": "🤖", "text": "Applied AI/LLM integration into customer-facing software products" },
-    { "emoji": "🚀", "text": "End-to-end MVP architecture and technical debt modernization" },
-    { "emoji": "👥", "text": "Mentoring engineering teams, code review culture, and technical roadmaps" }
+    { "emoji": "⚡", "text": "Key responsibility or skill directly from experience section in this resume" }
   ],
   "byTheNumbers": [
-    { "stat": "8+ years", "label": "building production-grade web & cloud systems" },
-    { "stat": "100+", "label": "enterprise applications and microservices delivered" },
-    { "stat": "5 to 25+", "label": "engineers mentored and led across cross-functional squads" },
-    { "stat": "99.99%", "label": "uptime maintained across mission-critical infrastructure" }
+    { "stat": "Stat from resume (e.g. 5+ years, 50k users, 99.9%)", "label": "Context from resume" }
   ],
-  "approach": [
-    "Understand the business problem",
-    "Diagnose the technical constraint",
-    "Choose the right pragmatic solution",
-    "Execute cleanly with tests",
-    "Optimize & observe in production"
-  ],
+  "approach": [],
   "techStack": {
-    "languages": ["TypeScript", "JavaScript", "Python", "Go"],
-    "frontend": ["React", "Next.js", "Tailwind CSS", "Vue.js"],
-    "backend": ["Node.js", "Express", "FastAPI", "GraphQL"],
-    "database": ["PostgreSQL", "Redis", "MongoDB", "MySQL"],
-    "devops": ["AWS", "Docker", "Kubernetes", "GitHub Actions"],
-    "ai_ml": ["Gemini", "PyTorch", "LangChain", "OpenAI"],
-    "tools": ["Git", "Linux", "Vite", "Figma", "Postman"]
+    "languages": [],
+    "frontend": [],
+    "backend": [],
+    "database": [],
+    "devops": [],
+    "ai_ml": [],
+    "tools": []
   },
-  "currentFocus": [
-    "Architecting scalable multi-tenant SaaS systems",
-    "Exploring local AI agent runtimes and structured generation",
-    "Contributing to open source developer tooling",
-    "Writing deep-dive technical engineering blogs"
-  ],
-  "featuredProjects": [
-    {
-      "name": "Project Name",
-      "description": "Short 1-2 sentence description highlighting technical impact and problem solved",
-      "tech": ["React", "Node.js", "PostgreSQL"],
-      "link": "https://github.com/username/project"
-    }
-  ],
-  "contentOrArticles": [
-    {
-      "title": "Writing in-depth technical blogs & engineering guides",
-      "description": "Sharing practical lessons on architecture, scaling bottlenecks, and modern web development.",
-      "link": ""
-    }
-  ]
+  "currentFocus": [],
+  "featuredProjects": [],
+  "contentOrArticles": []
 }`;
 
 // Bulletproof JSON extractor that handles markdown fences, surrounding text, or trailing content
@@ -159,10 +134,20 @@ function extractJsonFromText(rawText: string): any {
   return null;
 }
 
-// Resilient heuristic extractor for when AI models are unavailable or 503
+// Resilient stateless heuristic extractor: Extracts ONLY what is found in THIS resume text.
+// If not found, leaves fields empty without any filler or past resume data.
 function extractProfileFromResumeText(text: string): any {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-  const candidateName = lines.length > 0 ? lines[0].replace(/[^a-zA-Z\s.-]/g, '').slice(0, 40).trim() : 'Developer';
+  
+  // Extract Name (first clean non-header line under 40 chars)
+  let candidateName = '';
+  for (const line of lines.slice(0, 6)) {
+    const clean = line.replace(/[^a-zA-Z\s.-]/g, '').trim();
+    if (clean.length >= 2 && clean.length <= 40 && !/resume|curriculum|vitae|page|contact|email|phone|http/i.test(clean)) {
+      candidateName = clean;
+      break;
+    }
+  }
 
   // Extract email
   const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
@@ -170,20 +155,24 @@ function extractProfileFromResumeText(text: string): any {
 
   // Extract GitHub username or handle
   const githubMatch = text.match(/github\.com\/([a-zA-Z0-9_-]+)/i);
-  const githubUsername = githubMatch ? githubMatch[1] : (candidateName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'developer');
+  const githubUsername = githubMatch ? githubMatch[1] : (candidateName ? candidateName.toLowerCase().replace(/[^a-z0-9]/g, '') : '');
 
   // Extract LinkedIn
   const linkedinMatch = text.match(/linkedin\.com\/in\/([a-zA-Z0-9_-]+)/i);
   const linkedinUrl = linkedinMatch ? `https://linkedin.com/in/${linkedinMatch[1]}` : '';
 
-  // Extract tech stack keywords
+  // Extract personal website if found
+  const webMatch = text.match(/https?:\/\/(?!github\.com|linkedin\.com|twitter\.com|x\.com)([\w.-]+\.[a-z]{2,})(\/[^\s]*)?/i);
+  const website = webMatch ? webMatch[0] : '';
+
+  // Extract tech stack keywords that strictly appear in this text
   const techCatalog = [
     'TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift', 'Kotlin',
     'React', 'Next.js', 'Vue.js', 'Angular', 'Tailwind CSS', 'Redux', 'Svelte', 'HTML5', 'CSS3',
-    'Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs',
+    'Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs', 'Laravel', 'WordPress',
     'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Supabase', 'Firebase',
     'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'CI/CD', 'GitHub Actions', 'Terraform', 'Linux',
-    'PyTorch', 'TensorFlow', 'Gemini', 'OpenAI', 'LangChain', 'LLMs'
+    'PyTorch', 'TensorFlow', 'Gemini', 'OpenAI', 'LangChain', 'LLMs', 'Git', 'Vite', 'Figma', 'Postman'
   ];
 
   function matchesTechKeyword(sourceText: string, keyword: string): boolean {
@@ -201,73 +190,83 @@ function extractProfileFromResumeText(text: string): any {
   const foundTech = techCatalog.filter((tech) => matchesTechKeyword(text, tech));
   const languages = foundTech.filter((t) => ['TypeScript', 'JavaScript', 'Python', 'Go', 'Rust', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Swift', 'Kotlin'].includes(t));
   const frontend = foundTech.filter((t) => ['React', 'Next.js', 'Vue.js', 'Angular', 'Tailwind CSS', 'Redux', 'Svelte', 'HTML5', 'CSS3'].includes(t));
-  const backend = foundTech.filter((t) => ['Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs'].includes(t));
+  const backend = foundTech.filter((t) => ['Node.js', 'Express', 'FastAPI', 'Django', 'Flask', 'NestJS', 'GraphQL', 'REST APIs', 'Laravel', 'WordPress'].includes(t));
   const database = foundTech.filter((t) => ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite', 'Supabase', 'Firebase'].includes(t));
   const devops = foundTech.filter((t) => ['Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'CI/CD', 'GitHub Actions', 'Terraform', 'Linux'].includes(t));
+  const ai_ml = foundTech.filter((t) => ['Gemini', 'PyTorch', 'TensorFlow', 'OpenAI', 'LangChain', 'LLMs'].includes(t));
+  const tools = foundTech.filter((t) => ['Git', 'Vite', 'Figma', 'Postman'].includes(t));
+
+  // Determine Title from first non-name line or leave blank
+  let title = '';
+  for (const line of lines.slice(1, 4)) {
+    if (/engineer|developer|architect|lead|manager|consultant|specialist|designer|scientist/i.test(line)) {
+      title = line.replace(/[^a-zA-Z0-9\s&|·–-]/g, '').slice(0, 70).trim();
+      break;
+    }
+  }
+
+  // Extract Summary or About if present in text
+  let aboutMe = '';
+  const summaryHeaderIdx = lines.findIndex((l) => /^(summary|about|profile|professional summary|objective)/i.test(l));
+  if (summaryHeaderIdx !== -1 && lines[summaryHeaderIdx + 1]) {
+    aboutMe = lines.slice(summaryHeaderIdx + 1, summaryHeaderIdx + 4).join(' ');
+  }
+
+  // Extract bullet points from experience (lines starting with • or - or *)
+  const bulletLines = lines.filter((l) => /^[-•*·]\s+/.test(l));
+  const whatIDo = bulletLines.slice(0, 5).map((b, idx) => ({
+    emoji: idx === 0 ? '⚡' : idx === 1 ? '🗄️' : idx === 2 ? '🚀' : idx === 3 ? '🛠️' : '👥',
+    text: b.replace(/^[-•*·]\s+/, '').trim(),
+  }));
+
+  // Extract any metric lines with numbers/percentages
+  const metricLines = lines.filter((l) => /\b\d+(\.\d+)?%|\b\d+\+\s*(?:years|yrs)|\$\d+|\b\d+[kKmM]\b/.test(l));
+  const byTheNumbers = metricLines.slice(0, 4).map((m) => {
+    const numMatch = m.match(/\b\d+(\.\d+)?%|\b\d+\+\s*(?:years|yrs)|\$\d+|\b\d+[kKmM]\b/);
+    const stat = numMatch ? numMatch[0] : '';
+    const label = m.replace(stat, '').replace(/^[-•*·:, ]+/, '').trim().slice(0, 60);
+    return { stat, label: label || 'impact' };
+  }).filter((x) => Boolean(x.stat));
+
+  // Build socials list ONLY from what exists
+  const socials = [];
+  if (linkedinUrl) {
+    socials.push({ platform: 'linkedin', url: linkedinUrl, label: 'LinkedIn' });
+  }
+  if (githubUsername) {
+    socials.push({ platform: 'github', url: `https://github.com/${githubUsername}`, label: 'GitHub' });
+  }
+  if (website) {
+    socials.push({ platform: 'website', url: website, label: 'Portfolio' });
+  }
 
   return {
-    name: candidateName || 'Software Architect',
+    name: candidateName,
     githubUsername: githubUsername,
     pronouns: '',
-    title: 'Software Architect & Full-Stack Engineer',
+    title: title,
     location: '',
     company: '',
     email: email,
-    website: '',
-    socials: linkedinUrl
-      ? [{ platform: 'linkedin', url: linkedinUrl, label: 'LinkedIn' }]
-      : [{ platform: 'github', url: `https://github.com/${githubUsername}`, label: 'GitHub' }],
-    quote: "Simplicity is the prerequisite for reliability in distributed systems.",
-    aboutMe: `${candidateName} is an experienced software engineer focused on architecting resilient, scalable web systems and elegant developer tools.`,
-    whatIDo: [
-      { emoji: '⚡', text: 'Architecting high-throughput distributed applications and low-latency APIs' },
-      { emoji: '🗄️', text: 'Designing robust database schemas, indexing strategies, and caching layers' },
-      { emoji: '🚀', text: 'Accelerating product velocity from MVP architecture to production scale' },
-      { emoji: '🛠️', text: 'Refactoring technical debt and maintaining high test coverage' },
-      { emoji: '👥', text: 'Mentoring engineering squads and establishing high-standard code reviews' },
-    ],
-    byTheNumbers: [
-      { stat: '8+ yrs', label: 'shipping enterprise-grade cloud and web software' },
-      { stat: '100+', label: 'production services, microservices and APIs deployed' },
-      { stat: '99.9%', label: 'system availability and operational resilience' },
-      { stat: '15+', label: 'engineers mentored across cross-functional teams' },
-    ],
-    approach: [
-      'Understand the core business problem',
-      'Diagnose the technical constraints',
-      'Choose the simplest pragmatic architecture',
-      'Ship with comprehensive tests and observability',
-      'Iterate and optimize based on real production metrics'
-    ],
+    website: website,
+    socials: socials,
+    quote: '',
+    aboutMe: aboutMe,
+    whatIDo: whatIDo,
+    byTheNumbers: byTheNumbers,
+    approach: [],
     techStack: {
-      languages: languages.length > 0 ? languages : ['TypeScript', 'JavaScript', 'Python'],
-      frontend: frontend.length > 0 ? frontend : ['React', 'Next.js', 'Tailwind CSS'],
-      backend: backend.length > 0 ? backend : ['Node.js', 'Express'],
-      database: database.length > 0 ? database : ['PostgreSQL', 'Redis'],
-      devops: devops.length > 0 ? devops : ['Docker', 'AWS', 'GitHub Actions'],
-      ai_ml: ['Gemini', 'PyTorch'],
-      tools: ['Git', 'Vite', 'Linux']
+      languages,
+      frontend,
+      backend,
+      database,
+      devops,
+      ai_ml,
+      tools,
     },
-    currentFocus: [
-      'Architecting resilient distributed microservices and modern APIs',
-      'Integrating applied AI and structured LLM outputs into workflows',
-      'Contributing to open-source developer tooling and productivity apps'
-    ],
-    featuredProjects: [
-      {
-        name: 'High-Impact Architecture System',
-        description: 'Designed and deployed distributed production platform with automated testing and continuous integration.',
-        tech: ['TypeScript', 'React', 'Node.js'],
-        link: `https://github.com/${githubUsername}`
-      }
-    ],
-    contentOrArticles: [
-      {
-        title: 'Pragmatic Software Engineering & Architecture',
-        description: 'Writing technical guides on code simplicity, distributed systems, and modern web frameworks.',
-        link: ''
-      }
-    ]
+    currentFocus: [],
+    featuredProjects: [],
+    contentOrArticles: [],
   };
 }
 

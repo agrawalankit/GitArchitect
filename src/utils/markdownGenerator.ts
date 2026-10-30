@@ -51,21 +51,14 @@ export function generateMarkdown(profile: ProfileData): string {
       case 'approach': {
         if (profile.approach && profile.approach.length > 0) {
           const lines: string[] = ['### My approach\n'];
-          lines.push(`**${profile.approach.join(' → ')}**\n`);
-          lines.push(
-            `I don't believe every problem needs a rewrite, more infrastructure, or the newest framework. Sometimes the answer is better architecture. Sometimes it's a better query. And sometimes it's writing less code.`
-          );
+          lines.push(`**${profile.approach.join(' → ')}**`);
           parts.push(lines.join('\n'));
         }
         break;
       }
 
       case 'techStack': {
-        const lines: string[] = ['### Tech stack\n'];
-        const allBadges: string[] = [];
-
-        // Flatten all categories into badge markdown
-        const categories = profile.techStack;
+        const categories = profile.techStack || {};
         const allTechs = [
           ...(categories.languages || []),
           ...(categories.frontend || []),
@@ -76,8 +69,8 @@ export function generateMarkdown(profile: ProfileData): string {
           ...(categories.tools || []),
         ];
 
-        // Deduplicate
         const uniqueTechs = Array.from(new Set(allTechs));
+        const allBadges: string[] = [];
 
         uniqueTechs.forEach((tech) => {
           const { url, tech: info } = getBadgeUrl(tech, badgeStyle);
@@ -85,10 +78,10 @@ export function generateMarkdown(profile: ProfileData): string {
         });
 
         if (allBadges.length > 0) {
+          const lines: string[] = ['### Tech stack\n'];
           lines.push(allBadges.join(' '));
+          parts.push(lines.join('\n'));
         }
-
-        parts.push(lines.join('\n'));
         break;
       }
 
@@ -186,10 +179,8 @@ export function generateMarkdown(profile: ProfileData): string {
       }
 
       case 'contact': {
-        const lines: string[] = ["### Let's talk\n"];
-        lines.push(
-          "If you're a founder, CTO or product leader dealing with engineering challenges, or want to collaborate on open-source, let's connect:\n"
-        );
+        if (!profile.socials || profile.socials.length === 0) break;
+        const lines: string[] = ["### Let's connect\n"];
 
         const socialBadges: string[] = [];
 
@@ -206,14 +197,12 @@ export function generateMarkdown(profile: ProfileData): string {
           email: { color: 'D14836', logo: 'gmail' },
         };
 
-        if (profile.socials && profile.socials.length > 0) {
-          profile.socials.forEach((s) => {
-            const conf = socialMap[s.platform] || { color: '24292e', logo: 'github' };
-            const label = encodeURIComponent(s.label.toUpperCase());
-            const badgeImg = `https://img.shields.io/badge/${label}-${conf.color}?style=${badgeStyle}&logo=${conf.logo}&logoColor=white`;
-            socialBadges.push(`[![${s.label}](${badgeImg})](${s.url})`);
-          });
-        }
+        profile.socials.forEach((s) => {
+          const conf = socialMap[s.platform] || { color: '24292e', logo: 'github' };
+          const label = encodeURIComponent(s.label.toUpperCase());
+          const badgeImg = `https://img.shields.io/badge/${label}-${conf.color}?style=${badgeStyle}&logo=${conf.logo}&logoColor=white`;
+          socialBadges.push(`[![${s.label}](${badgeImg})](${s.url})`);
+        });
 
         if (socialBadges.length > 0) {
           lines.push(socialBadges.join(' '));

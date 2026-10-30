@@ -134,96 +134,107 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         setProgressStep('Structuring GitHub profile sections & badges...');
         const data = result.data || {};
 
-        const newProfile: ProfileData = {
-          name: data.name || 'Developer',
-        githubUsername: data.githubUsername || 'username',
-        pronouns: data.pronouns || 'they/them',
-        title: data.title || 'Full-Stack Software Engineer',
-        location: data.location || 'Remote',
-        company: data.company || '',
-        email: data.email || '',
-        website: data.website || '',
-        quote: data.quote || 'Simplicity is prerequisite for reliability.',
-        aboutMe: data.aboutMe || '',
-        whatIDo: (data.whatIDo || []).map((item: any, idx: number) => ({
+        const whatIDoItems = (data.whatIDo || []).map((item: any, idx: number) => ({
           id: String(idx + 1),
           emoji: item.emoji || '⚡',
           text: item.text || String(item),
-        })),
-        byTheNumbers: (data.byTheNumbers || []).map((item: any, idx: number) => ({
+        }));
+
+        const byTheNumbersItems = (data.byTheNumbers || []).map((item: any, idx: number) => ({
           id: String(idx + 1),
-          stat: item.stat || '10+',
-          label: item.label || 'projects delivered',
-        })),
-        approach: data.approach || [
-          'Understand user requirements',
-          'Architect resilient system',
-          'Ship clean code',
-          'Measure & iterate',
-        ],
-        techStack: {
-          languages: data.techStack?.languages || ['TypeScript', 'JavaScript', 'Python'],
-          frontend: data.techStack?.frontend || ['React', 'Next.js', 'Tailwind CSS'],
-          backend: data.techStack?.backend || ['Node.js', 'Express'],
-          database: data.techStack?.database || ['PostgreSQL', 'Redis'],
-          devops: data.techStack?.devops || ['AWS', 'Docker'],
-          ai_ml: data.techStack?.ai_ml || ['Gemini'],
-          tools: data.techStack?.tools || ['Git', 'VS Code'],
-        },
-        badgeStyle: 'for-the-badge',
-        statsWidgets: {
-          showStats: true,
-          showLanguages: true,
-          showStreak: true,
-          showSnake: true,
-          showTrophies: false,
-          theme: 'github_dark',
-          hideBorder: false,
-        },
-        currentFocus: data.currentFocus || [
-          'Building high-performance web applications',
-          'Contributing to open-source software',
-        ],
-        featuredProjects: (data.featuredProjects || []).map((proj: any, idx: number) => ({
+          stat: item.stat || '',
+          label: item.label || '',
+        })).filter((x: any) => Boolean(x.stat));
+
+        const projectsItems = (data.featuredProjects || []).map((proj: any, idx: number) => ({
           id: String(idx + 1),
-          name: proj.name || `Project-${idx + 1}`,
+          name: proj.name || '',
           description: proj.description || '',
-          tech: proj.tech || ['TypeScript', 'React'],
+          tech: proj.tech || [],
           link: proj.link || '',
-        })),
-        contentOrArticles: (data.contentOrArticles || []).map((c: any, idx: number) => ({
-          id: String(idx + 1),
-          title: c.title || 'Technical Article',
-          description: c.description || '',
-          link: c.link || '',
-        })),
-        socials: (data.socials || []).map((s: any, idx: number) => ({
+        })).filter((x: any) => Boolean(x.name));
+
+        const socialItems = (data.socials || []).map((s: any, idx: number) => ({
           id: String(idx + 1),
           platform: s.platform || 'website',
           url: s.url || '',
           label: s.label || 'Link',
-        })),
-        customMarkdown: '',
-        sections: [
-          { id: 'header', label: 'Header & Bio', enabled: true, iconName: 'User' },
-          { id: 'whatIDo', label: 'What I Do', enabled: true, iconName: 'Zap' },
-          { id: 'byTheNumbers', label: 'By The Numbers', enabled: true, iconName: 'Hash' },
-          { id: 'approach', label: 'My Approach', enabled: true, iconName: 'Compass' },
-          { id: 'techStack', label: 'Tech Stack', enabled: true, iconName: 'Cpu' },
-          { id: 'stats', label: 'GitHub Stats Cards', enabled: true, iconName: 'BarChart2' },
-          { id: 'projects', label: 'Featured Projects', enabled: true, iconName: 'FolderGit2' },
-          { id: 'focus', label: 'Current Focus', enabled: true, iconName: 'Target' },
-          { id: 'content', label: 'Writing & Community', enabled: true, iconName: 'BookOpen' },
-          { id: 'contact', label: "Let's Talk & Socials", enabled: true, iconName: 'MessageSquare' },
-          { id: 'custom', label: 'Custom Callout', enabled: false, iconName: 'FileText' },
-        ],
-      };
+        })).filter((x: any) => Boolean(x.url));
+
+        const newProfile: ProfileData = {
+          name: data.name || '',
+          githubUsername: data.githubUsername || '',
+          pronouns: data.pronouns || '',
+          title: data.title || '',
+          location: data.location || '',
+          company: data.company || '',
+          email: data.email || '',
+          website: data.website || '',
+          avatarUrl: undefined,
+          quote: data.quote || '',
+          aboutMe: data.aboutMe || '',
+          whatIDo: whatIDoItems,
+          byTheNumbers: byTheNumbersItems,
+          approach: data.approach || [],
+          techStack: {
+            languages: data.techStack?.languages || [],
+            frontend: data.techStack?.frontend || [],
+            backend: data.techStack?.backend || [],
+            database: data.techStack?.database || [],
+            devops: data.techStack?.devops || [],
+            ai_ml: data.techStack?.ai_ml || [],
+            tools: data.techStack?.tools || [],
+          },
+          badgeStyle: 'for-the-badge',
+          statsWidgets: {
+            showStats: Boolean(data.githubUsername),
+            showLanguages: Boolean(data.githubUsername),
+            showStreak: Boolean(data.githubUsername),
+            showSnake: false,
+            showTrophies: false,
+            theme: 'tokyonight',
+            hideBorder: true,
+          },
+          currentFocus: data.currentFocus || [],
+          featuredProjects: projectsItems,
+          contentOrArticles: (data.contentOrArticles || []).map((c: any, idx: number) => ({
+            id: String(idx + 1),
+            title: c.title || '',
+            description: c.description || '',
+            link: c.link || '',
+          })),
+          socials: socialItems,
+          customMarkdown: '',
+          sections: [
+            { id: 'header', label: 'Header & Bio', enabled: true, iconName: 'User' },
+            { id: 'whatIDo', label: 'What I Do', enabled: whatIDoItems.length > 0, iconName: 'Zap' },
+            { id: 'byTheNumbers', label: 'By The Numbers', enabled: byTheNumbersItems.length > 0, iconName: 'Hash' },
+            { id: 'approach', label: 'My Approach', enabled: (data.approach || []).length > 0, iconName: 'Compass' },
+            { id: 'techStack', label: 'Tech Stack', enabled: true, iconName: 'Cpu' },
+            { id: 'stats', label: 'GitHub Stats Cards', enabled: Boolean(data.githubUsername), iconName: 'BarChart2' },
+            { id: 'projects', label: 'Featured Projects', enabled: projectsItems.length > 0, iconName: 'FolderGit2' },
+            { id: 'focus', label: 'Current Focus', enabled: (data.currentFocus || []).length > 0, iconName: 'Target' },
+            { id: 'content', label: 'Writing & Community', enabled: (data.contentOrArticles || []).length > 0, iconName: 'BookOpen' },
+            { id: 'contact', label: "Let's Talk & Socials", enabled: socialItems.length > 0, iconName: 'MessageSquare' },
+            { id: 'custom', label: 'Custom Callout', enabled: false, iconName: 'FileText' },
+          ],
+        };
+
+        // Clear document memory immediately once processing finishes
+        setFile(null);
+        setRawText('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
 
         trackEvent('modal_resume_parsed_success', 'conversion', newProfile.githubUsername || 'anonymous');
         onProfileLoaded(newProfile);
         onClose();
       } else {
         const fallback = parseResumeClientSide(textContent || file?.name || '', file?.name);
+        // Clear document memory immediately
+        setFile(null);
+        setRawText('');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
         trackEvent('modal_resume_parsed_success', 'conversion', (fallback.githubUsername || 'anonymous') + '_fallback');
         onProfileLoaded(fallback);
         onClose();
